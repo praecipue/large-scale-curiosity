@@ -2,6 +2,7 @@ import multiprocessing
 import os
 import platform
 from functools import partial
+import warnings
 
 import numpy as np
 import tensorflow as tf
@@ -54,7 +55,8 @@ def guess_available_gpus(n_gpus=None):
     if os.path.exists(nvidia_dir):
         n_gpus = len(os.listdir(nvidia_dir))
         return list(range(n_gpus))
-    raise Exception("Couldn't guess the available gpus on this machine")
+    warnings.warn("Couldn't guess the available gpus on this machine. Training on CPU might be much slower")
+    return []
 
 
 def setup_mpi_gpus():
@@ -67,7 +69,7 @@ def setup_mpi_gpus():
     nodes_ordered_by_rank = MPI.COMM_WORLD.allgather(node_id)
     processes_outranked_on_this_node = [n for n in nodes_ordered_by_rank[:MPI.COMM_WORLD.Get_rank()] if n == node_id]
     local_rank = len(processes_outranked_on_this_node)
-    os.environ['CUDA_VISIBLE_DEVICES'] = str(available_gpus[local_rank])
+    os.environ['CUDA_VISIBLE_DEVICES'] = str(available_gpus[local_rank]) if len(available_gpus) != 0 else ''
 
 
 def guess_available_cpus():
