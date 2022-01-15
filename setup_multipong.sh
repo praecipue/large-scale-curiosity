@@ -2,7 +2,8 @@
 set -eu
 
 #PYTHON_EXEC=python3.7
-PYTHON_EXEC=python3.6
+# If PYTHON_EXEC is not passed as env variable then set the default
+[ -z "${PYTHON_EXEC+x}" ] && PYTHON_EXEC=python3.6
 
 PYSUFFIX=$(basename $(realpath $(which ${PYTHON_EXEC})) | tr -d -c '[0-9]')
 #PYSUFFIX=$(echo ${PYTHON_EXEC} | tr -d -c '[0-9]')
