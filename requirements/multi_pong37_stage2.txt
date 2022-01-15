@@ -1,0 +1,2 @@
+# Install requirements from corresponding *_stage1.txt file first
+-e git+https://github.com/openai/baselines.git@7c520852d9cf4eaaad326a3d548efc915dc60c10#egg=baselines
