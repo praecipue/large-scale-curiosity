@@ -1,0 +1,37 @@
+# Requirements for running multipong from gym-retro
+absl-py==1.0.0
+astor==0.8.1
+-e git+https://github.com/openai/baselines.git@7c520852d9cf4eaaad326a3d548efc915dc60c10#egg=baselines
+click==8.0.3
+cloudpickle==1.6.0
+dataclasses==0.8
+gast==0.2.2
+google-pasta==0.2.0
+grpcio==1.43.0
+gym==0.19.0
+gym-retro==0.8.0
+h5py==2.10.0
+importlib-metadata==4.8.3
+joblib==1.1.0
+Keras-Applications==1.0.8
+Keras-Preprocessing==1.1.2
+Markdown==3.3.6
+mpi4py==3.1.3
+numpy==1.18.5
+opencv-python==4.5.5.62
+opt-einsum==3.3.0
+Pillow==8.4.0
+pkg_resources==0.0.0
+protobuf==3.19.3
+pyglet==1.5.21
+scipy==1.5.4
+six==1.16.0
+tensorboard==1.15.0
+tensorflow-estimator==1.15.1
+tensorflow-gpu==1.15.5
+termcolor==1.1.0
+tqdm==4.62.3
+typing_extensions==4.0.1
+Werkzeug==2.0.2
+wrapt==1.13.3
+zipp==3.6.0
