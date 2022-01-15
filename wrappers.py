@@ -243,8 +243,8 @@ def make_mario_env(crop=True, frame_stack=True, clip_rewards=False):
     import gym
     import retro
     from baselines.common.atari_wrappers import FrameStack
-
-    gym.undo_logger_setup()
+    if hasattr(gym, 'undo_logger_setup'): # For old gym versions =<0.10.5
+        gym.undo_logger_setup()
     env = retro.make('SuperMarioBros-Nes', 'Level1-1')
     buttons = env.BUTTONS
     env = MarioXReward(env)
@@ -312,9 +312,10 @@ def make_multi_pong(frame_stack=True):
     import gym
     import retro
     from baselines.common.atari_wrappers import FrameStack
-    gym.undo_logger_setup()
+    if hasattr(gym, 'undo_logger_setup'): # For old gym versions =<0.10.5
+        gym.undo_logger_setup()
     game_env = env = retro.make('Pong-Atari2600', players=2)
-    env = RetroALEActions(env, game_env.BUTTONS, n_players=2)
+    env = RetroALEActions(env, game_env.buttons, n_players=2)
     env = NoReward(env)
     env = FrameSkip(env, 4)
     env = ProcessFrame84(env, crop=False)
