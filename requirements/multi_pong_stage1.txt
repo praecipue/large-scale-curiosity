@@ -1,7 +1,8 @@
 # Requirements for running multipong from gym-retro
 absl-py==1.0.0
 astor==0.8.1
--e git+https://github.com/openai/baselines.git@7c520852d9cf4eaaad326a3d548efc915dc60c10#egg=baselines
+# Requires tensorflow to install, should be installed in second run
+# -e git+https://github.com/openai/baselines.git@7c520852d9cf4eaaad326a3d548efc915dc60c10#egg=baselines
 click==8.0.3
 cloudpickle==1.6.0
 dataclasses==0.8
