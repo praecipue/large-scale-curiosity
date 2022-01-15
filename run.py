@@ -4,6 +4,7 @@ try:
 except:
     print("no OpenGL.GLU")
 import functools
+import os
 import os.path as osp
 from functools import partial
 
@@ -133,7 +134,12 @@ def make_env_all_params(rank, add_monitor, args):
     elif args["env_kind"] == 'mario':
         env = make_mario_env()
     elif args["env_kind"] == "retro_multi":
-        env = make_multi_pong()
+        if rank == 0:
+            rec_path = osp.join(logger.get_dir(), 'retro-rec')
+            os.makedirs(rec_path, exist_ok=True)
+        else:
+            rec_path = False
+        env = make_multi_pong(record_path=rec_path)
     elif args["env_kind"] == 'robopong':
         if args["env"] == "pong":
             env = make_robo_pong()

@@ -308,13 +308,13 @@ class NoReward(gym.Wrapper):
         return ob, 0.0, done, info
 
 
-def make_multi_pong(frame_stack=True):
+def make_multi_pong(frame_stack=True, record_path=False):
     import gym
     import retro
     from baselines.common.atari_wrappers import FrameStack
     if hasattr(gym, 'undo_logger_setup'): # For old gym versions =<0.10.5
         gym.undo_logger_setup()
-    game_env = env = retro.make('Pong-Atari2600', players=2)
+    game_env = env = retro.make('Pong-Atari2600', players=2, record=record_path)
     env = RetroALEActions(env, game_env.buttons, n_players=2)
     env = NoReward(env)
     env = FrameSkip(env, 4)
