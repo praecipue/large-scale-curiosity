@@ -27,15 +27,41 @@ from wrappers import MontezumaInfoWrapper, make_mario_env, make_robo_pong, make_
 def start_experiment(**args):
     make_env = partial(make_env_all_params, add_monitor=True, args=args)
 
-    trainer = Trainer(make_env=make_env,
-                      num_timesteps=args['num_timesteps'], hps=args,
-                      envs_per_process=args['envs_per_process'])
     log, tf_sess = get_experiment_environment(**args)
-    with log, tf_sess:
-        logdir = logger.get_dir()
-        print("results will be saved to ", logdir)
-        trainer.train()
+    with log:
+        trainer = Trainer(make_env=make_env,
+                        num_timesteps=args['num_timesteps'], hps=args,
+                        envs_per_process=args['envs_per_process'])
 
+        with tf_sess:
+            logdir = logger.get_dir()
+            log_run_details(logdir)
+            print("results will be saved to ", logdir)
+            trainer.train()
+
+def log_run_details(logdir):
+    with open(osp.join(logdir, 'run_command.txt'), 'x') as fcmd:
+        import sys
+        import subprocess
+        fcmd.write(' '.join(sys.argv))
+        fcmd.write('\n')
+        fcmd.write(repr(sys.argv))
+        try:
+            cwd = osp.dirname(osp.realpath(__file__))
+        except NameError:
+            cwd = None
+        env = os.environ.copy()
+        env['LC_ALL'] = 'C'
+        def store_command_output(cmd):
+            try:
+                fcmd.write('\n')
+                fcmd.write(subprocess.check_output(cmd, stderr=subprocess.STDOUT, cwd=cwd, env=env).decode('ascii'))
+            except Exception as e:
+                print('On logging run details exception occured: {!r}'.format(e))
+
+        store_command_output(['git', 'remote', 'get-url', 'origin'])
+        store_command_output(['git', 'rev-parse', 'HEAD'])
+        store_command_output(['git', 'status'])
 
 class Trainer(object):
     def __init__(self, make_env, hps, num_timesteps, envs_per_process):
@@ -113,7 +139,7 @@ class Trainer(object):
 
 
     def _set_env_vars(self):
-        env = self.make_env(0, add_monitor=False)
+        env = self.make_env(0, add_monitor=False, disable_rec=True)
         self.ob_space, self.ac_space = env.observation_space, env.action_space
         self.ob_mean, self.ob_std = random_agent_ob_mean_std(env)
         del env
@@ -146,7 +172,7 @@ class Trainer(object):
         self.agent.stop_interaction()
 
 
-def make_env_all_params(rank, add_monitor, args):
+def make_env_all_params(rank, add_monitor, args, disable_rec=False):
     if args["env_kind"] == 'atari':
         env = gym.make(args['env'])
         assert 'NoFrameskip' in env.spec.id
@@ -161,7 +187,7 @@ def make_env_all_params(rank, add_monitor, args):
     elif args["env_kind"] == 'mario':
         env = make_mario_env()
     elif args["env_kind"] == "retro_multi":
-        if rank == 0 and args["retro_record"]:
+        if not disable_rec and rank == 0 and args["retro_record"]:
             rec_path = osp.join(logger.get_dir(), 'retro-rec')
             os.makedirs(rec_path, exist_ok=True)
         else:
