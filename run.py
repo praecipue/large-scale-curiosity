@@ -35,13 +35,14 @@ def start_experiment(**args):
 
         with tf_sess:
             logdir = logger.get_dir()
-            log_run_details(logdir)
+            log_run_details(logdir, args)
             print("results will be saved to ", logdir)
             trainer.train()
 
-def log_run_details(logdir):
+def log_run_details(logdir, args):
     with open(osp.join(logdir, 'run_command.txt'), 'x') as fcmd:
         import sys
+        import json
         import subprocess
         fcmd.write(' '.join(sys.argv))
         fcmd.write('\n')
@@ -62,6 +63,12 @@ def log_run_details(logdir):
         store_command_output(['git', 'remote', 'get-url', 'origin'])
         store_command_output(['git', 'rev-parse', 'HEAD'])
         store_command_output(['git', 'status'])
+        fcmd.write('\nargs dump:\n')
+
+        def default(obj):
+            print('Warning: failed to log args value {!r}, fallback to string'.format(o))
+            return {'JSON encoding fallback': repr(o)}
+        json.dump(args, fcmd, indent=1, sort_keys=False, default=default)
 
 class Trainer(object):
     def __init__(self, make_env, hps, num_timesteps, envs_per_process):
