@@ -8,8 +8,10 @@ set -eu
 PYSUFFIX=$(basename $(realpath $(which ${PYTHON_EXEC})) | tr -d -c '[0-9]')
 #PYSUFFIX=$(echo ${PYTHON_EXEC} | tr -d -c '[0-9]')
 
+[ -z "${SUPERUSER_PREFIX+x}" -a $(id -u) -ne 0 ] && which sudo && SUPERUSER_PREFIX='sudo --reset-timestamp'
+SUPERUSER_PREFIX=${SUPERUSER_PREFIX:-}
 # unrar-nonfree required only for unpacking roms.rar below
-apt-get install -y ${PYTHON_EXEC}-venv unrar # might require sudo
+${SUPERUSER_PREFIX} apt-get install -y ${PYTHON_EXEC}-venv unrar libopenmpi-dev # might require sudo
 
 ${PYTHON_EXEC} -m venv ./venv
 
