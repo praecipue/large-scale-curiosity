@@ -98,6 +98,19 @@ class Trainer(object):
         self.agent.to_report['dyn_loss'] = tf.reduce_mean(self.dynamics.loss)
         self.agent.total_loss += self.agent.to_report['dyn_loss']
         self.agent.to_report['feat_var'] = tf.reduce_mean(tf.nn.moments(self.feature_extractor.features, [0, 1])[1])
+        self.ckpt_update = hps['ckpt_update']
+        if hps['ckpt_path'] is None:
+            self.ckpt_base_path = osp.join(logger.get_dir(), 'models')
+        else:
+            ver = 0
+            while True:
+                base_path = osp.join(hps['ckpt_path'], 'models-{}{}'.format(hps['exp_name'], ver))
+                if not os.path.exists(base_path):
+                    break
+                ver += 1
+            self.ckpt_base_path = base_path
+        os.makedirs(self.ckpt_base_path)
+
 
     def _set_env_vars(self):
         env = self.make_env(0, add_monitor=False)
@@ -106,16 +119,30 @@ class Trainer(object):
         del env
         self.envs = [functools.partial(self.make_env, i) for i in range(self.envs_per_process)]
 
+    def store_checkpoint(self, global_step=None, write_meta_graph=False):
+      self.saver.save(tf.compat.v1.get_default_session(),
+          self.models_path,
+          global_step=global_step,
+          write_meta_graph=write_meta_graph
+      )
+
     def train(self):
         self.agent.start_interaction(self.envs, nlump=self.hps['nlumps'], dynamics=self.dynamics)
+        self.models_path = osp.join(self.ckpt_base_path, 'model.ckpt')
+        self.saver = tf.compat.v1.train.Saver(tf.compat.v1.trainable_variables(), max_to_keep=10,
+                                              keep_checkpoint_every_n_hours=4, save_relative_paths=True)
         while True:
             info = self.agent.step()
+            last_update = 0
             if info['update']:
                 logger.logkvs(info['update'])
                 logger.dumpkvs()
+                last_update = info['update']['n_updates']
             if self.agent.rollout.stats['tcount'] > self.num_timesteps:
                 break
-
+            if self.ckpt_update != 0 and last_update % self.ckpt_update == 1:
+                self.store_checkpoint(global_step=last_update)
+        self.store_checkpoint()
         self.agent.stop_interaction()
 
 
@@ -134,7 +161,7 @@ def make_env_all_params(rank, add_monitor, args):
     elif args["env_kind"] == 'mario':
         env = make_mario_env()
     elif args["env_kind"] == "retro_multi":
-        if rank == 0:
+        if rank == 0 and args["retro_record"]:
             rec_path = osp.join(logger.get_dir(), 'retro-rec')
             os.makedirs(rec_path, exist_ok=True)
         else:
@@ -173,6 +200,7 @@ def add_environments_params(parser):
     parser.add_argument('--max-episode-steps', help='maximum number of timesteps for episode', default=4500, type=int)
     parser.add_argument('--env_kind', type=str, default="atari")
     parser.add_argument('--noop_max', type=int, default=30)
+    parser.add_argument('--retro_record', action='store_true', help='in multipong (Atari, gym-retro) store .bk2 recordings on worker 0')
 
 
 def add_optimization_params(parser):
@@ -211,6 +239,8 @@ if __name__ == '__main__':
     parser.add_argument('--layernorm', type=int, default=0)
     parser.add_argument('--feat_learning', type=str, default="none",
                         choices=["none", "idf", "vaesph", "vaenonsph", "pix2pix"])
+    parser.add_argument('--ckpt_update', type=int, default=5, help='Save checkpoint after each K updates (0 disables)', metavar='K')
+    parser.add_argument('--ckpt_path', default=None, help='path to directory in which checkpoints will be stored (by default logger dir)')
 
     args = parser.parse_args()
 
