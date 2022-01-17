@@ -132,12 +132,27 @@ class Trainer(object):
         self.agent.total_loss += self.agent.to_report['dyn_loss']
         self.agent.to_report['feat_var'] = tf.reduce_mean(tf.nn.moments(self.feature_extractor.features, [0, 1])[1])
         self.ckpt_update = hps['ckpt_update']
-        if hps['ckpt_path'] is None:
+        if hps['ckpt_resume'] is not None:
+            self._ckpt_init(ckpt_resume=hps['ckpt_resume'], exp_name=hps['exp_name'])
+        else:
+            self._ckpt_init(ckpt_base=hps['ckpt_path'], exp_name=hps['exp_name'])
+
+    def _ckpt_init(self, ckpt_base=None, ckpt_resume=None, exp_name=''):
+        if ckpt_resume is not None:
+            if osp.isdir(ckpt_resume):
+                self.ckpt_base_path = ckpt_resume
+                self.resume = True
+                return
+            else:
+                raise RuntimeError('{} is not existing directory. '
+                        'ckpt_resume argument should be path to checkpoint directory'.format(ckpt_resume))
+        self.resume = False
+        if ckpt_base is None:
             self.ckpt_base_path = osp.join(logger.get_dir(), 'models')
         else:
             ver = 0
             while True:
-                base_path = osp.join(hps['ckpt_path'], 'models-{}{}'.format(hps['exp_name'], ver))
+                base_path = osp.join(ckpt_base, 'models-{}{}'.format(exp_name, ver))
                 if not os.path.exists(base_path):
                     break
                 ver += 1
@@ -159,11 +174,20 @@ class Trainer(object):
           write_meta_graph=write_meta_graph
       )
 
+    def load_checkpoint(self):
+        resume_path = tf.train.latest_checkpoint(self.ckpt_base_path)
+        if resume_path is None:
+            raise RuntimeError('could not find latest checkpoint')
+        logger.log('Resuming from {}'.format(resume_path))
+        self.saver.restore(tf.compat.v1.get_default_session(), resume_path)
+
     def train(self):
         self.agent.start_interaction(self.envs, nlump=self.hps['nlumps'], dynamics=self.dynamics)
         self.models_path = osp.join(self.ckpt_base_path, 'model.ckpt')
         self.saver = tf.compat.v1.train.Saver(tf.compat.v1.trainable_variables(), max_to_keep=10,
                                               keep_checkpoint_every_n_hours=4, save_relative_paths=True)
+        if self.resume:
+            self.load_checkpoint()
         while True:
             info = self.agent.step()
             last_update = 0
@@ -274,6 +298,7 @@ if __name__ == '__main__':
                         choices=["none", "idf", "vaesph", "vaenonsph", "pix2pix"])
     parser.add_argument('--ckpt_update', type=int, default=5, help='Save checkpoint after each K updates (0 disables)', metavar='K')
     parser.add_argument('--ckpt_path', default=None, help='path to directory in which checkpoints will be stored (by default logger dir)')
+    parser.add_argument('--ckpt_resume', default=None, help='resume training given path to directory of model checkpoints')
 
     args = parser.parse_args()
 
