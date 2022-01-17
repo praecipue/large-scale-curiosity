@@ -15,7 +15,7 @@ ${SUPERUSER_PREFIX} apt-get install -y ${PYTHON_EXEC}-venv unrar libopenmpi-dev 
 
 ${PYTHON_EXEC} -m venv ./venv
 
-. ./venv/bin/activate
+. ./venv/bin/activate && PYTHON_EXEC=$(basename "${PYTHON_EXEC}")
 
 PIPINSTALL="${PYTHON_EXEC} -m pip install --progress-bar off"
 #PIPINSTALL="${PYTHON_EXEC} -m pip install"
@@ -32,4 +32,5 @@ unzip -q ROMS.zip
 ${PYTHON_EXEC} -m retro.import ROMS/
 
 echo "Done. You can run multipong experiment with"
-echo ". ./venv/bin/activate && ${PYTHON_EXEC} run.py --env 'PongNoFrameskip-v0' --env_kind 'retro_multi' --exp_name 'pongidf' --feat_learning 'idf'"
+echo ". ./venv/bin/activate && ${PYTHON_EXEC} run.py --env 'PongNoFrameskip-v0' --env_kind 'retro_multi' --exp_name 'some-name-pongidf' --feat_learning 'idf' --ckpt_update 8 --retro_record --ckpt_path ./ckpts/"
+echo "Logging base dir might be changed with environment variable TMPDIR, e.g. TMPDIR=/var/tmp/"
