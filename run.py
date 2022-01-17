@@ -180,6 +180,12 @@ class Trainer(object):
             raise RuntimeError('could not find latest checkpoint')
         logger.log('Resuming from {}'.format(resume_path))
         self.saver.restore(tf.compat.v1.get_default_session(), resume_path)
+        model_prefix = osp.basename(resume_path)
+        PREFIX = 'model.ckpt-'
+        suffix = model_prefix[len(PREFIX):]
+        if model_prefix.startswith(PREFIX) and suffix.isdigit():
+            n_updates = int(suffix)
+            self.agent.n_updates = n_updates
 
     def train(self):
         self.agent.start_interaction(self.envs, nlump=self.hps['nlumps'], dynamics=self.dynamics)
