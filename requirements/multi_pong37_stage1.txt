@@ -4,11 +4,11 @@ astor==0.8.1
 # Requires tensorflow to install, should be installed in second run
 # -e git+https://github.com/openai/baselines.git@7c520852d9cf4eaaad326a3d548efc915dc60c10#egg=baselines
 click==8.0.3
-cloudpickle==1.6.0
+cloudpickle==2.0.0
 gast==0.2.2
 google-pasta==0.2.0
 grpcio==1.43.0
-gym==0.19.0
+gym==0.21.0
 gym-retro==0.8.0
 h5py==2.10.0
 importlib-metadata==4.10.0
