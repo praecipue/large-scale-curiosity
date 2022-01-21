@@ -80,7 +80,7 @@ def wrap_tensorboard_None2NaN():
             def writekvs_wrapper(self, kvs):
                 kvs = {k: v if v is not None else float('nan') for k, v in kvs.items()}
                 return original_writekvs(kvs) # None
-            outformat.writekvs = types.MethodType(writekvs_wrapper)
+            outformat.writekvs = types.MethodType(writekvs_wrapper, outformat)
 
 class Trainer(object):
     def __init__(self, make_env, hps, num_timesteps, envs_per_process):
