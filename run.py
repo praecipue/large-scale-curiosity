@@ -7,6 +7,7 @@ import functools
 import os
 import os.path as osp
 from functools import partial
+import types
 
 import gym
 import tensorflow as tf
@@ -33,6 +34,7 @@ def start_experiment(**args):
                         num_timesteps=args['num_timesteps'], hps=args,
                         envs_per_process=args['envs_per_process'])
 
+        wrap_tensorboard_None2NaN()
         with tf_sess:
             logdir = logger.get_dir()
             log_run_details(logdir, args)
@@ -69,6 +71,16 @@ def log_run_details(logdir, args):
             print('Warning: failed to log args value {!r}, fallback to string'.format(o))
             return {'JSON encoding fallback': repr(o)}
         json.dump(args, fcmd, indent=1, sort_keys=False, default=default)
+
+def wrap_tensorboard_None2NaN():
+    # FIXME: That is a baselines dependent hack, probable to break in future!
+    for outformat in logger.get_current().output_formats:
+        if isinstance(outformat, logger.TensorBoardOutputFormat):
+            original_writekvs = outformat.writekvs
+            def writekvs_wrapper(self, kvs):
+                kvs = {k: v if v is not None else float('nan') for k, v in kvs.items()}
+                return original_writekvs(kvs) # None
+            outformat.writekvs = types.MethodType(writekvs_wrapper)
 
 class Trainer(object):
     def __init__(self, make_env, hps, num_timesteps, envs_per_process):
@@ -134,6 +146,7 @@ class Trainer(object):
         self.ckpt_update = hps['ckpt_update']
         if hps['ckpt_resume'] is not None:
             self._ckpt_init(ckpt_resume=hps['ckpt_resume'], exp_name=hps['exp_name'])
+            self._set_step_tensorboard = hps['log_tensorboard']
         else:
             self._ckpt_init(ckpt_base=hps['ckpt_path'], exp_name=hps['exp_name'])
 
@@ -186,6 +199,10 @@ class Trainer(object):
         if model_prefix.startswith(PREFIX) and suffix.isdigit():
             n_updates = int(suffix)
             self.agent.n_updates = n_updates
+            if self._set_step_tensorboard:
+                for outformat in logger.get_current().output_formats:
+                    if isinstance(outformat, logger.TensorBoardOutputFormat):
+                        outformat.step = n_updates + 1
 
     def train(self):
         self.agent.start_interaction(self.envs, nlump=self.hps['nlumps'], dynamics=self.dynamics)
@@ -250,9 +267,12 @@ def get_experiment_environment(**args):
     set_global_seeds(process_seed)
     setup_mpi_gpus()
 
+    formats = ['stdout', 'log', 'csv']
+    if args["log_tensorboard"]:
+        formats.append('tensorboard')
+
     logger_context = logger.scoped_configure(dir=None,
-                                             format_strs=['stdout', 'log',
-                                                          'csv'] if MPI.COMM_WORLD.Get_rank() == 0 else ['log'])
+                                             format_strs=formats if MPI.COMM_WORLD.Get_rank() == 0 else ['log'])
     tf_context = setup_tensorflow_session()
     return logger_context, tf_context
 
@@ -305,6 +325,7 @@ if __name__ == '__main__':
     parser.add_argument('--ckpt_update', type=int, default=5, help='Save checkpoint after each K updates (0 disables)', metavar='K')
     parser.add_argument('--ckpt_path', default=None, help='path to directory in which checkpoints will be stored (by default logger dir)')
     parser.add_argument('--ckpt_resume', default=None, help='resume training given path to directory of model checkpoints')
+    parser.add_argument('--log_tensorboard', action='store_true', help='additionally log data to tensorboard')
 
     args = parser.parse_args()
 
