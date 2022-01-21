@@ -190,7 +190,7 @@ class Trainer(object):
     def train(self):
         self.agent.start_interaction(self.envs, nlump=self.hps['nlumps'], dynamics=self.dynamics)
         self.models_path = osp.join(self.ckpt_base_path, 'model.ckpt')
-        self.saver = tf.compat.v1.train.Saver(tf.compat.v1.trainable_variables(), max_to_keep=10,
+        self.saver = tf.compat.v1.train.Saver(tf.compat.v1.global_variables(), max_to_keep=4,
                                               keep_checkpoint_every_n_hours=4, save_relative_paths=True)
         if self.resume:
             self.load_checkpoint()
