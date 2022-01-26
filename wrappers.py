@@ -280,7 +280,16 @@ class AddNoise(gym.ObservationWrapper):
     def observation(self, obs):
         noise = self.rand_gen.integers(0, self.level, obs.shape, dtype=obs.dtype)
         obs += noise
+        self._ob_cache = obs
         return obs
+
+    def render(self, mode='human'):
+        self.env.render(mode=mode)
+        if mode == 'rgb_array':
+            if hasattr(self, '_ob_cache'):
+                return np.tile(self._ob_cache, (3,))
+        return super(AddNoise, self).render(mode=mode)
+
 
 class RetroALEActions(gym.ActionWrapper):
     def __init__(self, env, all_buttons, n_players=1):
@@ -337,7 +346,7 @@ def make_multi_pong(frame_stack=True, record_path=False, noise_level=0):
     if noise_level > 0:
         env = AddNoise(env, noise_level)
         if record_path:
-            gym.wrappers.RecordVideo(env, video_folder=record_path, name_prefix="rl-video-noise")
+            env = gym.wrappers.RecordVideo(env, video_folder=f'{record_path}-noise', name_prefix="rl-video-noise")
     if frame_stack:
         env = FrameStack(env, 4)
 
