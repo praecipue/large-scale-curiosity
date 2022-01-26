@@ -270,7 +270,7 @@ class OneChannel(gym.ObservationWrapper):
 
 class AddNoise(gym.ObservationWrapper):
     def __init__(self, env, level):
-        super(OneChannel, self).__init__(env)
+        super(AddNoise, self).__init__(env)
         assert env.observation_space.dtype == np.uint8
         self.observation_space = gym.spaces.Box(low=0, high=255, shape=(84, 84, 3), dtype=np.uint8)
         self.rand_gen = np.random.default_rng()
