@@ -1,6 +1,7 @@
 import itertools
 from collections import deque
 from copy import copy
+from math import ceil
 
 import gym
 import numpy as np
@@ -267,6 +268,20 @@ class OneChannel(gym.ObservationWrapper):
         return obs[:, :, 2:3]
 
 
+class AddNoise(gym.ObservationWrapper):
+    def __init__(self, env, level):
+        super(OneChannel, self).__init__(env)
+        assert env.observation_space.dtype == np.uint8
+        self.observation_space = gym.spaces.Box(low=0, high=255, shape=(84, 84, 3), dtype=np.uint8)
+        self.rand_gen = np.random.default_rng()
+        assert 0. < level <= 1.
+        self.level = min(ceil(level*256), 256)
+
+    def observation(self, obs):
+        noise = self.rand_gen.integers(0, self.level, obs.shape, dtype=obs.dtype)
+        obs += noise
+        return obs
+
 class RetroALEActions(gym.ActionWrapper):
     def __init__(self, env, all_buttons, n_players=1):
         gym.ActionWrapper.__init__(self, env)
@@ -308,7 +323,7 @@ class NoReward(gym.Wrapper):
         return ob, 0.0, done, info
 
 
-def make_multi_pong(frame_stack=True, record_path=False):
+def make_multi_pong(frame_stack=True, record_path=False, noise_level=0):
     import gym
     import retro
     from baselines.common.atari_wrappers import FrameStack
@@ -319,6 +334,10 @@ def make_multi_pong(frame_stack=True, record_path=False):
     env = NoReward(env)
     env = FrameSkip(env, 4)
     env = ProcessFrame84(env, crop=False)
+    if noise_level > 0:
+        env = AddNoise(env, noise_level)
+        if record_path:
+            gym.wrappers.RecordVideo(env, video_folder=record_path, name_prefix="rl-video-noise")
     if frame_stack:
         env = FrameStack(env, 4)
 

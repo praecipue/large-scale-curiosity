@@ -246,7 +246,7 @@ def make_env_all_params(rank, add_monitor, args, disable_rec=False):
             os.makedirs(rec_path, exist_ok=True)
         else:
             rec_path = False
-        env = make_multi_pong(record_path=rec_path)
+        env = make_multi_pong(record_path=rec_path, noise_level=args["add_noise"])
     elif args["env_kind"] == 'robopong':
         if args["env"] == "pong":
             env = make_robo_pong()
@@ -284,6 +284,7 @@ def add_environments_params(parser):
     parser.add_argument('--env_kind', type=str, default="atari")
     parser.add_argument('--noop_max', type=int, default=30)
     parser.add_argument('--retro_record', action='store_true', help='in multipong (Atari, gym-retro) store .bk2 recordings on worker 0')
+    parser.add_argument('--add_noise', type=float, default=0, help='in multipong add noise to observation space [0,1]')
 
 
 def add_optimization_params(parser):
